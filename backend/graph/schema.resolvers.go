@@ -6,6 +6,8 @@ package graph
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/gofrs/uuid"
 	"github.com/itsmaleen/personal-shopper/backend/graph/generated"
@@ -28,11 +30,46 @@ func (r *mutationResolver) CreateImageData(ctx context.Context, input model.NewI
 }
 
 func (r *mutationResolver) UploadImage(ctx context.Context, input model.Image) (bool, error) {
-	panic(fmt.Errorf("not implemented"))
+	userFileName := fmt.Sprintf("%v-%v", input.ImageDataID, input.File.Filename)
+
+	stream, readErr := io.ReadAll(input.File.File)
+	if readErr != nil {
+		fmt.Printf("error from file %v", readErr)
+	}
+
+	imageURI := fmt.Sprintf("../images/%v", userFileName)
+	fileErr := os.WriteFile(imageURI, stream, 0644)
+	if fileErr != nil {
+		return false, fmt.Errorf("error saving file: %v", fileErr)
+	}
+
+	imageData, imageDataErr := r.GetImageByField("id", *input.ImageDataID)
+	if imageDataErr != nil {
+		return false, fmt.Errorf("error getting imageData: %v", imageDataErr)
+	}
+
+	imageData.URI = imageURI
+	_, updateErr := r.UpdateImageData(imageData)
+	if updateErr != nil {
+		return false, fmt.Errorf("error updating imageData: %v", updateErr)
+	}
+
+	return true, nil
 }
 
 func (r *mutationResolver) CreateTag(ctx context.Context, input model.NewTag) (*model.Tag, error) {
-	panic(fmt.Errorf("not implemented"))
+	tag := &model.Tag{
+		ID:    uuid.Must(uuid.NewV4()).String(),
+		Name:  input.Name,
+		Color: *input.Color,
+	}
+
+	_, err := r.DB.Model(tag).Insert()
+	if err != nil {
+		return nil, fmt.Errorf("error inserting tag: %v", err)
+	}
+
+	return tag, nil
 }
 
 func (r *mutationResolver) AssignTag(ctx context.Context, input model.AddTag) (bool, error) {
@@ -40,7 +77,12 @@ func (r *mutationResolver) AssignTag(ctx context.Context, input model.AddTag) (b
 }
 
 func (r *queryResolver) Tags(ctx context.Context) ([]*model.Tag, error) {
-	panic(fmt.Errorf("not implemented"))
+	var tags []*model.Tag
+	err := r.DB.Model(&tags).Select()
+	if err != nil {
+		return nil, err
+	}
+	return tags, nil
 }
 
 func (r *queryResolver) Images(ctx context.Context) ([]*model.ImageData, error) {

@@ -10,7 +10,7 @@ import (
 )
 
 func createSchema(db *pg.DB) error {
-	for _, models := range []interface{}{(*model.ImageData)(nil)} {
+	for _, models := range []interface{}{(*model.ImageData)(nil), (*model.Tag)(nil)} {
 		if err := db.Model(models).CreateTable(&orm.CreateTableOptions{
 			IfNotExists: true,
 		}); err != nil {

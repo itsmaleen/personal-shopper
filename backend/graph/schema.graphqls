@@ -1,0 +1,45 @@
+scalar Upload
+
+type ImageData {
+  id: ID!
+  uri: String!
+  name: String
+  tags: [Tag]
+}
+
+type Tag {
+  id: ID!
+  name: String!
+  color: String!
+}
+
+type Query {
+  tags: [Tag!]!
+  images: [ImageData!]!
+}
+
+input NewImageData {
+  name: String
+}
+
+input NewTag {
+  name: String!
+  color: String
+}
+
+input AddTag {
+  imageId: String!
+  tagId: String!
+}
+
+input Image {
+  imageDataId: String
+  file: Upload
+}
+
+type Mutation {
+  createImageData(input: NewImageData!): ImageData!
+  uploadImage(input: Image!): Boolean!
+  createTag(input: NewTag!): Tag!
+  assignTag(input: AddTag!): Boolean!
+}

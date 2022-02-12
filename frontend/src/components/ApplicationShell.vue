@@ -248,9 +248,11 @@
                   <div
                     v-for="product in products"
                     :key="product.id"
-                    :id="`product-${product.id}`"
                     class="group relative"
-                    ref="productsRef"
+                    v-on:dragenter="dragEnter($event, product)"
+                    v-on:dragover="dragOver($event, product)"
+                    v-on:dragleave="dragLeave($event, product)"
+                    v-on:drop="drop($event, product)"
                   >
                     <div
                       class="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md overflow-hidden group-hover:opacity-75 lg:h-80 lg:aspect-none"
@@ -303,9 +305,9 @@
 
         <!-- Secondary column (hidden on smaller screens) -->
         <aside
-          class="hidden w-96 bg-white border-l border-gray-200 overflow-y-auto lg:block"
+          class="hidden w-96 bg-white border-l border-gray-200 overflow-y-auto lg:block p-8"
         >
-          <span
+          <!-- <span
             v-for="(tag, index) in tags"
             :key="index"
             class="px-2 py-1 text-green-800 text-xs font-medium bg-green-100 rounded-full cursor-move tag"
@@ -313,7 +315,50 @@
             draggable="true"
           >
             {{ tag.name }}
-          </span>
+          </span> -->
+          <ul
+            role="list"
+            class="mt-2 border-t border-b border-gray-200 divide-y divide-gray-200"
+          >
+            <li
+              v-for="(tag, index) in tags"
+              :key="index"
+              class="py-3 flex justify-between items-center"
+              draggable="true"
+              v-on:dragstart="dragStart($event, tag)"
+            >
+              <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-green-100" />
+                <p class="ml-4 text-sm font-medium text-gray-900">
+                  {{ tag.name }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="ml-6 bg-white rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Remove<span class="sr-only"> {{ tag.name }}</span>
+              </button>
+            </li>
+            <li class="py-2 flex justify-between items-center">
+              <label for="tag" class="sr-only">tag</label>
+              <input
+                type="text"
+                name="tag"
+                id="tag"
+                class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="streetwear"
+                v-model="newTag"
+              />
+              <button
+                type="button"
+                @click="createTag"
+                class="ml-6 bg-white rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Add<span class="sr-only"> Label</span>
+              </button>
+            </li>
+          </ul>
         </aside>
       </div>
     </div>
@@ -344,17 +389,6 @@ import {
   XIcon,
 } from "@heroicons/vue/outline";
 import { SearchIcon } from "@heroicons/vue/solid";
-
-const tags = [
-  {
-    name: "streetwear",
-    color: "#312349",
-  },
-  {
-    name: "high fashion",
-    color: "#312349",
-  },
-];
 
 const sidebarNavigation = [
   { name: "Home", href: "#", icon: HomeIcon, current: false },
@@ -392,7 +426,6 @@ export default {
     const mobileMenuOpen = ref(false);
 
     return {
-      tags,
       sidebarNavigation,
       userNavigation,
       mobileMenuOpen,
@@ -400,8 +433,6 @@ export default {
   },
   data() {
     return {
-      productsRef: null,
-      tagsRef: null,
       products: [
         {
           id: 1,
@@ -437,24 +468,23 @@ export default {
           tags: [],
         },
       ],
+      tags: [
+        {
+          name: "streetwear",
+          color: "#312349",
+        },
+        {
+          name: "high fashion",
+          color: "#312349",
+        },
+      ],
+      newTag: null,
     };
   },
-  mounted() {
-    tags.forEach((tag, index) => {
-      const tagElement = document.getElementById(`tag-${index}`);
-      tagElement.addEventListener("dragstart", this.dragStart);
-    });
-    this.products.forEach((product) => {
-      const productElement = document.getElementById(`product-${product.id}`);
-      productElement.addEventListener("dragenter", this.dragEnter);
-      productElement.addEventListener("dragover", this.dragOver);
-      productElement.addEventListener("dragleave", this.dragLeave);
-      productElement.addEventListener("drop", this.drop);
-    });
-  },
   methods: {
-    dragStart(e) {
-      e.dataTransfer.setData("text/plain", e.target.id);
+    dragStart(e, tag) {
+      console.log("dragstart ", tag);
+      e.dataTransfer.setData("text/json", JSON.stringify(tag));
     },
     dragEnter(e) {
       e.preventDefault();
@@ -467,31 +497,35 @@ export default {
     dragLeave(e) {
       getProductTarget(e).classList.remove("drag-over");
     },
-    drop(e) {
-      const productTarget = getProductTarget(e);
-      productTarget.classList.remove("drag-over");
+    drop(e, product) {
+      getProductTarget(e).classList.remove("drag-over");
 
-      // get the draggable element
-      const id = e.dataTransfer.getData("text/plain");
-      const draggable = document.getElementById(id);
+      const tagJson = e.dataTransfer.getData("text/json");
+      const tag = JSON.parse(tagJson);
 
-      const productId = Number(productTarget.id.split("-")[1]);
-      const product = this.products.find((product) => product.id === productId);
-
-      const tagIndex = product.tags.findIndex(
-        (t) => t.name === draggable.textContent
-      );
+      const tagIndex = product.tags.findIndex((t) => t.name === tag.name);
 
       if (tagIndex === -1) {
-        console.log(productTarget.id);
-        console.log(product);
-        product.tags.push({ name: draggable.textContent });
+        product.tags.push({ name: tag.name });
       }
     },
     removeTag(productId, tag) {
       const product = this.products.find((product) => product.id === productId);
       const tagIndex = product.tags.findIndex((t) => t.name === tag.name);
       product.tags.splice(tagIndex, 1);
+    },
+    createTag() {
+      if (this.newTag) {
+        const index = this.tags.length;
+        this.tags.push({
+          name: this.newTag,
+          color: "#312349",
+        });
+        this.newTag = null;
+
+        const tagElement = document.getElementById(`tag-${index}`);
+        tagElement.addEventListener("dragstart", this.dragStart);
+      }
     },
   },
 };

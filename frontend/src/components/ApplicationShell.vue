@@ -270,7 +270,24 @@
                         </h3>
                         <!-- Hide tags -->
                         <div class="mt-1 text-sm text-gray-500">
-                          <div>No tags</div>
+                          <div v-if="product.tags.length === 0">No tags</div>
+                          <div v-else>
+                            <span
+                              v-for="(tag, index) in product.tags"
+                              :key="index"
+                              class="px-2 py-1 text-green-800 text-xs font-medium bg-green-100 rounded-full cursor-move tag"
+                            >
+                              {{ tag.name }}
+                              <button
+                                type="button"
+                                class="rounded-md p-1.5 text-green-500 focus:outline-none"
+                                @click="removeTag(product.id, tag)"
+                              >
+                                <span class="sr-only">Dismiss</span>
+                                <XIcon class="h-3 w-3" aria-hidden="true" />
+                              </button>
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <p class="text-sm font-medium text-gray-900">
@@ -296,14 +313,6 @@
             draggable="true"
           >
             {{ tag.name }}
-            <button
-              type="button"
-              class="rounded-md p-1.5 text-green-500 focus:outline-none"
-              @click="deleteTag"
-            >
-              <span class="sr-only">Dismiss</span>
-              <XIcon class="h-3 w-3" aria-hidden="true" />
-            </button>
           </span>
         </aside>
       </div>
@@ -347,39 +356,6 @@ const tags = [
   },
 ];
 
-const products = [
-  {
-    id: 1,
-    name: "Basic Tee",
-    href: "#",
-    imageSrc:
-      "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
-    imageAlt: "Front of men's Basic Tee in black.",
-    price: "$35",
-    color: "Black",
-  },
-  {
-    id: 2,
-    name: "Basic Tee",
-    href: "#",
-    imageSrc:
-      "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
-    imageAlt: "Front of men's Basic Tee in black.",
-    price: "$35",
-    color: "Black",
-  },
-  {
-    id: 3,
-    name: "Basic Tee",
-    href: "#",
-    imageSrc:
-      "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
-    imageAlt: "Front of men's Basic Tee in black.",
-    price: "$35",
-    color: "Black",
-  },
-];
-
 const sidebarNavigation = [
   { name: "Home", href: "#", icon: HomeIcon, current: false },
   { name: "All Files", href: "#", icon: ViewGridIcon, current: false },
@@ -393,59 +369,8 @@ const userNavigation = [
   { name: "Sign out", href: "#" },
 ];
 
-function getTagTarget(e) {
-  return e.target.closest(".tag");
-}
-
 function getProductTarget(e) {
   return e.target.closest(".group");
-}
-
-function dragStart(e) {
-  e.dataTransfer.setData("text/plain", e.target.id);
-}
-
-function dragEnter(e) {
-  e.preventDefault();
-  getProductTarget(e).classList.add("drag-over");
-}
-
-function dragOver(e) {
-  e.preventDefault();
-  getProductTarget(e).classList.add("drag-over");
-}
-
-function dragLeave(e) {
-  getProductTarget(e).classList.remove("drag-over");
-}
-
-function drop(e) {
-  const productTarget = getProductTarget(e);
-  productTarget.classList.remove("drag-over");
-
-  // get the draggable element
-  const id = e.dataTransfer.getData("text/plain");
-  const draggable = document.getElementById(id);
-
-  // add it to the drop target
-  let tagAlreadyExist = false;
-  for (let i = 0; i < productTarget.children.length; i++) {
-    if (productTarget.children[i].textContent === draggable.textContent) {
-      tagAlreadyExist = true;
-      // TODO: Add toast that says tag already added
-      break;
-    }
-  }
-  if (!tagAlreadyExist) {
-    console.log();
-    const clone = draggable.cloneNode(true);
-    clone.draggable = false;
-    clone.classList.remove("cursor-move");
-    clone.classList.add("cursor-default");
-    clone.childNodes[1].classList.remove("hidden");
-    clone.id = `${productTarget.id}-${draggable.id}`;
-    productTarget.appendChild(clone);
-  }
 }
 
 export default {
@@ -468,43 +393,105 @@ export default {
 
     return {
       tags,
-      products,
       sidebarNavigation,
       userNavigation,
       mobileMenuOpen,
     };
   },
+  data() {
+    return {
+      productsRef: null,
+      tagsRef: null,
+      products: [
+        {
+          id: 1,
+          name: "Basic Tee",
+          href: "#",
+          imageSrc:
+            "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
+          imageAlt: "Front of men's Basic Tee in black.",
+          price: "$35",
+          color: "Black",
+          tags: [],
+        },
+        {
+          id: 2,
+          name: "Basic Tee",
+          href: "#",
+          imageSrc:
+            "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
+          imageAlt: "Front of men's Basic Tee in black.",
+          price: "$35",
+          color: "Black",
+          tags: [],
+        },
+        {
+          id: 3,
+          name: "Basic Tee",
+          href: "#",
+          imageSrc:
+            "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
+          imageAlt: "Front of men's Basic Tee in black.",
+          price: "$35",
+          color: "Black",
+          tags: [],
+        },
+      ],
+    };
+  },
   mounted() {
     tags.forEach((tag, index) => {
       const tagElement = document.getElementById(`tag-${index}`);
-      tagElement.addEventListener("dragstart", dragStart);
+      tagElement.addEventListener("dragstart", this.dragStart);
     });
-    products.forEach((product) => {
+    this.products.forEach((product) => {
       const productElement = document.getElementById(`product-${product.id}`);
-      productElement.addEventListener("dragenter", dragEnter);
-      productElement.addEventListener("dragover", dragOver);
-      productElement.addEventListener("dragleave", dragLeave);
-      productElement.addEventListener("drop", drop);
+      productElement.addEventListener("dragenter", this.dragEnter);
+      productElement.addEventListener("dragover", this.dragOver);
+      productElement.addEventListener("dragleave", this.dragLeave);
+      productElement.addEventListener("drop", this.drop);
     });
   },
   methods: {
-    hasTags(index) {
-      console.log(this.$refs);
-      if (this.$refs?.productsRef) {
-        console.log(this.$refs.productsRef);
-        return this.$refs?.productsRef[index]?.children.length > 2;
-      }
-      return false;
+    dragStart(e) {
+      e.dataTransfer.setData("text/plain", e.target.id);
     },
-    deleteTag(event) {
-      console.log("delete tag");
-      const tagElement = getTagTarget(event);
-      tagElement.removeEventListener("dragstart", dragStart);
-      tagElement.removeEventListener("dragenter", dragEnter);
-      tagElement.removeEventListener("dragover", dragOver);
-      tagElement.removeEventListener("dragleave", dragLeave);
-      tagElement.removeEventListener("drop", drop);
-      tagElement.remove();
+    dragEnter(e) {
+      e.preventDefault();
+      getProductTarget(e).classList.add("drag-over");
+    },
+    dragOver(e) {
+      e.preventDefault();
+      getProductTarget(e).classList.add("drag-over");
+    },
+    dragLeave(e) {
+      getProductTarget(e).classList.remove("drag-over");
+    },
+    drop(e) {
+      const productTarget = getProductTarget(e);
+      productTarget.classList.remove("drag-over");
+
+      // get the draggable element
+      const id = e.dataTransfer.getData("text/plain");
+      const draggable = document.getElementById(id);
+
+      const productId = Number(productTarget.id.split("-")[1]);
+      const product = this.products.find((product) => product.id === productId);
+
+      const tagIndex = product.tags.findIndex(
+        (t) => t.name === draggable.textContent
+      );
+
+      if (tagIndex === -1) {
+        console.log(productTarget.id);
+        console.log(product);
+        product.tags.push({ name: draggable.textContent });
+      }
+    },
+    removeTag(productId, tag) {
+      const product = this.products.find((product) => product.id === productId);
+      const tagIndex = product.tags.findIndex((t) => t.name === tag.name);
+      product.tags.splice(tagIndex, 1);
     },
   },
 };

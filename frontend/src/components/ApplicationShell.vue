@@ -246,7 +246,7 @@
                   class="mt-6 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8"
                 >
                   <div
-                    v-for="(product, index) in products"
+                    v-for="product in products"
                     :key="product.id"
                     :id="`product-${product.id}`"
                     class="group relative"
@@ -269,10 +269,7 @@
                           </a>
                         </h3>
                         <!-- Hide tags -->
-                        <div
-                          v-if="!hasTags(index)"
-                          class="mt-1 text-sm text-gray-500"
-                        >
+                        <div class="mt-1 text-sm text-gray-500">
                           <div>No tags</div>
                         </div>
                       </div>
@@ -294,11 +291,19 @@
           <span
             v-for="(tag, index) in tags"
             :key="index"
-            class="px-2 py-1 text-green-800 text-xs font-medium bg-green-100 rounded-full cursor-move"
+            class="px-2 py-1 text-green-800 text-xs font-medium bg-green-100 rounded-full cursor-move tag"
             :id="`tag-${index}`"
             draggable="true"
           >
             {{ tag.name }}
+            <button
+              type="button"
+              class="rounded-md p-1.5 text-green-500 focus:outline-none"
+              @click="deleteTag"
+            >
+              <span class="sr-only">Dismiss</span>
+              <XIcon class="h-3 w-3" aria-hidden="true" />
+            </button>
           </span>
         </aside>
       </div>
@@ -388,6 +393,10 @@ const userNavigation = [
   { name: "Sign out", href: "#" },
 ];
 
+function getTagTarget(e) {
+  return e.target.closest(".tag");
+}
+
 function getProductTarget(e) {
   return e.target.closest(".group");
 }
@@ -428,7 +437,12 @@ function drop(e) {
     }
   }
   if (!tagAlreadyExist) {
+    console.log();
     const clone = draggable.cloneNode(true);
+    clone.draggable = false;
+    clone.classList.remove("cursor-move");
+    clone.classList.add("cursor-default");
+    clone.childNodes[1].classList.remove("hidden");
     clone.id = `${productTarget.id}-${draggable.id}`;
     productTarget.appendChild(clone);
   }
@@ -482,15 +496,21 @@ export default {
       }
       return false;
     },
+    deleteTag(event) {
+      console.log("delete tag");
+      const tagElement = getTagTarget(event);
+      tagElement.removeEventListener("dragstart", dragStart);
+      tagElement.removeEventListener("dragenter", dragEnter);
+      tagElement.removeEventListener("dragover", dragOver);
+      tagElement.removeEventListener("dragleave", dragLeave);
+      tagElement.removeEventListener("drop", drop);
+      tagElement.remove();
+    },
   },
 };
 </script>
 
 <style>
-.hide {
-  display: none;
-}
-
 .drag-over {
   @apply border-dashed border-4 border-gray-300;
 }

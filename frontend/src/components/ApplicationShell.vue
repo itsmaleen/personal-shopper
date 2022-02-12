@@ -238,7 +238,52 @@
             class="min-w-0 flex-1 h-full flex flex-col lg:order-last"
           >
             <h1 id="primary-heading" class="sr-only">Photos</h1>
-            <!-- Your content -->
+            <div class="bg-white">
+              <div
+                class="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8"
+              >
+                <div
+                  class="mt-6 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8"
+                >
+                  <div
+                    v-for="(product, index) in products"
+                    :key="product.id"
+                    :id="`product-${product.id}`"
+                    class="group relative"
+                    ref="productsRef"
+                  >
+                    <div
+                      class="w-full min-h-80 bg-gray-200 aspect-w-1 aspect-h-1 rounded-md overflow-hidden group-hover:opacity-75 lg:h-80 lg:aspect-none"
+                    >
+                      <img
+                        :src="product.imageSrc"
+                        :alt="product.imageAlt"
+                        class="w-full h-full object-center object-cover lg:w-full lg:h-full"
+                      />
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                      <div>
+                        <h3 class="text-sm text-gray-700">
+                          <a :href="product.href">
+                            {{ product.name }}
+                          </a>
+                        </h3>
+                        <!-- Hide tags -->
+                        <div
+                          v-if="!hasTags(index)"
+                          class="mt-1 text-sm text-gray-500"
+                        >
+                          <div>No tags</div>
+                        </div>
+                      </div>
+                      <p class="text-sm font-medium text-gray-900">
+                        {{ product.price }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
         </main>
 
@@ -246,7 +291,15 @@
         <aside
           class="hidden w-96 bg-white border-l border-gray-200 overflow-y-auto lg:block"
         >
-          <!-- Your content -->
+          <span
+            v-for="(tag, index) in tags"
+            :key="index"
+            class="px-2 py-1 text-green-800 text-xs font-medium bg-green-100 rounded-full cursor-move"
+            :id="`tag-${index}`"
+            draggable="true"
+          >
+            {{ tag.name }}
+          </span>
         </aside>
       </div>
     </div>
@@ -278,6 +331,50 @@ import {
 } from "@heroicons/vue/outline";
 import { SearchIcon } from "@heroicons/vue/solid";
 
+const tags = [
+  {
+    name: "streetwear",
+    color: "#312349",
+  },
+  {
+    name: "high fashion",
+    color: "#312349",
+  },
+];
+
+const products = [
+  {
+    id: 1,
+    name: "Basic Tee",
+    href: "#",
+    imageSrc:
+      "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
+    imageAlt: "Front of men's Basic Tee in black.",
+    price: "$35",
+    color: "Black",
+  },
+  {
+    id: 2,
+    name: "Basic Tee",
+    href: "#",
+    imageSrc:
+      "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
+    imageAlt: "Front of men's Basic Tee in black.",
+    price: "$35",
+    color: "Black",
+  },
+  {
+    id: 3,
+    name: "Basic Tee",
+    href: "#",
+    imageSrc:
+      "https://tailwindui.com/img/ecommerce-images/product-page-01-related-product-01.jpg",
+    imageAlt: "Front of men's Basic Tee in black.",
+    price: "$35",
+    color: "Black",
+  },
+];
+
 const sidebarNavigation = [
   { name: "Home", href: "#", icon: HomeIcon, current: false },
   { name: "All Files", href: "#", icon: ViewGridIcon, current: false },
@@ -290,6 +387,52 @@ const userNavigation = [
   { name: "Your Profile", href: "#" },
   { name: "Sign out", href: "#" },
 ];
+
+function getProductTarget(e) {
+  return e.target.closest(".group");
+}
+
+function dragStart(e) {
+  e.dataTransfer.setData("text/plain", e.target.id);
+}
+
+function dragEnter(e) {
+  e.preventDefault();
+  getProductTarget(e).classList.add("drag-over");
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  getProductTarget(e).classList.add("drag-over");
+}
+
+function dragLeave(e) {
+  getProductTarget(e).classList.remove("drag-over");
+}
+
+function drop(e) {
+  const productTarget = getProductTarget(e);
+  productTarget.classList.remove("drag-over");
+
+  // get the draggable element
+  const id = e.dataTransfer.getData("text/plain");
+  const draggable = document.getElementById(id);
+
+  // add it to the drop target
+  let tagAlreadyExist = false;
+  for (let i = 0; i < productTarget.children.length; i++) {
+    if (productTarget.children[i].textContent === draggable.textContent) {
+      tagAlreadyExist = true;
+      // TODO: Add toast that says tag already added
+      break;
+    }
+  }
+  if (!tagAlreadyExist) {
+    const clone = draggable.cloneNode(true);
+    clone.id = `${productTarget.id}-${draggable.id}`;
+    productTarget.appendChild(clone);
+  }
+}
 
 export default {
   components: {
@@ -310,10 +453,45 @@ export default {
     const mobileMenuOpen = ref(false);
 
     return {
+      tags,
+      products,
       sidebarNavigation,
       userNavigation,
       mobileMenuOpen,
     };
   },
+  mounted() {
+    tags.forEach((tag, index) => {
+      const tagElement = document.getElementById(`tag-${index}`);
+      tagElement.addEventListener("dragstart", dragStart);
+    });
+    products.forEach((product) => {
+      const productElement = document.getElementById(`product-${product.id}`);
+      productElement.addEventListener("dragenter", dragEnter);
+      productElement.addEventListener("dragover", dragOver);
+      productElement.addEventListener("dragleave", dragLeave);
+      productElement.addEventListener("drop", drop);
+    });
+  },
+  methods: {
+    hasTags(index) {
+      console.log(this.$refs);
+      if (this.$refs?.productsRef) {
+        console.log(this.$refs.productsRef);
+        return this.$refs?.productsRef[index]?.children.length > 2;
+      }
+      return false;
+    },
+  },
 };
 </script>
+
+<style>
+.hide {
+  display: none;
+}
+
+.drag-over {
+  @apply border-dashed border-4 border-gray-300;
+}
+</style>

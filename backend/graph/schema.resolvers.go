@@ -61,7 +61,7 @@ func (r *mutationResolver) CreateTag(ctx context.Context, input model.NewTag) (*
 	tag := &model.Tag{
 		ID:    uuid.Must(uuid.NewV4()).String(),
 		Name:  input.Name,
-		Color: *input.Color,
+		Color: input.Color,
 	}
 
 	_, err := r.DB.Model(tag).Insert()

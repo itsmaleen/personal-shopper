@@ -10,7 +10,7 @@ type ImageData {
 type Tag {
   id: ID!
   name: String!
-  color: String!
+  color: String
 }
 
 type Query {

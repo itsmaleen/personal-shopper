@@ -389,6 +389,7 @@ import {
   XIcon,
 } from "@heroicons/vue/outline";
 import { SearchIcon } from "@heroicons/vue/solid";
+import gql from "graphql-tag";
 
 const sidebarNavigation = [
   { name: "Home", href: "#", icon: HomeIcon, current: false },
@@ -431,6 +432,16 @@ export default {
       mobileMenuOpen,
     };
   },
+  apollo: {
+    tags: gql`
+      query {
+        tags {
+          id
+          name
+        }
+      }
+    `,
+  },
   data() {
     return {
       products: [
@@ -466,16 +477,6 @@ export default {
           price: "$35",
           color: "Black",
           tags: [],
-        },
-      ],
-      tags: [
-        {
-          name: "streetwear",
-          color: "#312349",
-        },
-        {
-          name: "high fashion",
-          color: "#312349",
         },
       ],
       newTag: null,
@@ -514,17 +515,25 @@ export default {
       const tagIndex = product.tags.findIndex((t) => t.name === tag.name);
       product.tags.splice(tagIndex, 1);
     },
-    createTag() {
+    async createTag() {
       if (this.newTag) {
-        const index = this.tags.length;
-        this.tags.push({
-          name: this.newTag,
-          color: "#312349",
+        const result = await this.$apollo.mutate({
+          mutation: gql`
+            mutation createTag($newTag: NewTag!) {
+              createTag(input: $newTag) {
+                id
+                name
+              }
+            }
+          `,
+          variables: {
+            newTag: {
+              name: this.newTag,
+              color: "#D960AA",
+            },
+          },
         });
         this.newTag = null;
-
-        const tagElement = document.getElementById(`tag-${index}`);
-        tagElement.addEventListener("dragstart", this.dragStart);
       }
     },
   },

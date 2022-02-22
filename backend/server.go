@@ -13,7 +13,6 @@ import (
 	"github.com/itsmaleen/personal-shopper/backend/graph/generated"
 	"github.com/joho/godotenv"
 
-	"github.com/go-chi/chi"
 	"github.com/rs/cors"
 )
 
@@ -30,16 +29,13 @@ func main() {
 		port = defaultPort
 	}
 
-	router := chi.NewRouter()
-
-	// Add CORS middleware around every request
-	// See https://github.com/rs/cors for full option listing
-	router.Use(cors.New(cors.Options{
+	mux := http.NewServeMux()
+	c := cors.New(cors.Options{
 		// AllowedOrigins:   []string{"http://localhost:" + defaultPort},
 		AllowedOrigins:   []string{"*"},
-		AllowCredentials: true,
+		AllowCredentials: false,
 		Debug:            true,
-	}).Handler)
+	})
 
 	Database := graph.Connect()
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{DB: Database}}))
@@ -54,9 +50,12 @@ func main() {
 		},
 	})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	mux.Handle("/query", srv)
+
+	corsHandler := cors.Default().Handler(mux)
+	corsHandler = c.Handler(corsHandler)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, corsHandler))
 }

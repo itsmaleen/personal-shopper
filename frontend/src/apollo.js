@@ -8,9 +8,6 @@ import { createApolloProvider } from "@vue/apollo-option";
 const httpLink = createHttpLink({
   // You should use an absolute URL here
   uri: "http://localhost:8080/query",
-  fetchOptions: {
-    mode: "no-cors",
-  },
 });
 
 // Cache implementation
